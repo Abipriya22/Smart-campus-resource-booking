@@ -5,6 +5,8 @@ from typing import Optional
 from datetime import datetime, date, timedelta, time as dt_time
 from db_config import get_connection
 from passlib.context import CryptContext
+import bcrypt
+
 
 app = FastAPI()
 
@@ -105,21 +107,6 @@ def set_student_password(user_id: str, body: PasswordSet):
 # AUTH - LOGIN
 # ─────────────────────────────────────────────
 
-@app.post("/login/student")
-def student_login(body: LoginRequest):
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM User WHERE User_id = %s", (body.id.upper(),))
-    user = cursor.fetchone()
-    conn.close()
-    if not user:
-        raise HTTPException(status_code=404, detail="Roll number not found")
-    if not user["Password"]:
-        raise HTTPException(status_code=403, detail="NO_PASSWORD")
-    if not pwd_context.verify(body.password, user["Password"]):
-        raise HTTPException(status_code=401, detail="Wrong password")
-    return user
-
 @app.post("/login/admin")
 def admin_login(body: LoginRequest):
     conn = get_connection()
@@ -131,10 +118,24 @@ def admin_login(body: LoginRequest):
         raise HTTPException(status_code=404, detail="Admin ID not found")
     if not admin["Password"]:
         raise HTTPException(status_code=403, detail="NO_PASSWORD")
-    if not pwd_context.verify(body.password, admin["Password"]):
+    if not bcrypt.checkpw(body.password.encode("utf-8"), admin["Password"].encode("utf-8")):
         raise HTTPException(status_code=401, detail="Wrong password")
     return admin
 
+@app.post("/login/student")
+def student_login(body: LoginRequest):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM User WHERE User_id = %s", (body.id.upper(),))
+    user = cursor.fetchone()
+    conn.close()
+    if not user:
+        raise HTTPException(status_code=404, detail="Roll number not found")
+    if not user["Password"]:
+        raise HTTPException(status_code=403, detail="NO_PASSWORD")
+    if not bcrypt.checkpw(body.password.encode("utf-8"), user["Password"].encode("utf-8")):
+        raise HTTPException(status_code=401, detail="Wrong password")
+    return user
 # ─────────────────────────────────────────────
 # RESOURCES - AVAILABLE HALLS
 # ─────────────────────────────────────────────

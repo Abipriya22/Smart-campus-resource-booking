@@ -7,7 +7,7 @@ def get_connection():
             host='localhost',
             database='hall_booking_db',
             user='root',
-            password='Kmabipriya@2007'   # உங்கள் MySQL password போடுங்க
+            password='Kmabipriya@2007'   
         )
         if connection.is_connected():
             return connection
